@@ -1,20 +1,20 @@
-# Makefile for malloc
- 
-CC=gcc
-CFLAGS= -Wall -Wextra -std=c99 -fno-builtin -O0 -g -fPIC -D_BSD_SOURCE
-LDFLAGS=
-LDLIBS=
- 
-libmalloc.so: malloc.o
-	${CC} -shared -o libmalloc.so malloc.o
- 
-test: test.o
-	gcc -o test test.o libmalloc.so
+CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99 -D_GNU_SOURCE -fPIC -fvisibility=hidden -g
+LDFLAGS = -shared
+TARGET_LIB = libmalloc.so
+OBJS = malloc.o
+BIN = test
+CC ?= gcc
 
-test.o: libmalloc.so
+
+.PHONY: all ${TARGET_LIB} clean
+
+$(BIN): new_malloc.c
+	$(CC) $(CFLAGS) -o $(@) $(<) 
+
+${TARGET_LIB}: ${OBJS}
+	${CC} ${LDFLAGS} -o $@ $^
+
+all: ${TARGET_LIB}
 
 clean:
-	rm -f *~ *.o
-	rm -f libmalloc.so
- 
-# end
+	${RM} ${TARGET_LIB} ${OBJS}
