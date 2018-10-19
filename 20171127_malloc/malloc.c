@@ -170,7 +170,7 @@ static struct chunk* get_chunk(void *p)
 }
 
 __attribute__((visibility("default")))
-void *my_malloc(size_t __attribute__((unused)) size)
+void *malloc(size_t __attribute__((unused)) size)
 {
 	struct chunk *c;
 	size_t s;
@@ -193,7 +193,7 @@ void *my_calloc(size_t __attribute__((unused)) nb,
              size_t __attribute__((unused)) size)
 {
 	void *p;
-	p = my_malloc(nb * size);
+	p = malloc(nb * size);
 	if (!p)
 		return NULL;
 	zerofill(p, word_align(size*nb));	
@@ -201,7 +201,7 @@ void *my_calloc(size_t __attribute__((unused)) nb,
 }
 
 __attribute__((visibility("default")))
-void my_free(void __attribute__((unused)) *p)
+void free(void __attribute__((unused)) *p)
 {
 	struct chunk *c = get_chunk(p);
 	if (c)
@@ -239,12 +239,12 @@ void *my_realloc(void __attribute__((unused)) *p,
             tmp->prev = c;
             return p;
         }
-        void *new_p = my_malloc(size);		
+        void *new_p = malloc(size);		
 	wordcpy(new_p, p, c->size);
-	my_free(p);
+	free(p);
 	return new_p;
 }
-
+/*
 int main(void)
 {
     printf("sizeof struct chunk %ld\n", sizeof(struct chunk));
@@ -267,3 +267,4 @@ int main(void)
     printf("size after str %lu\n", c->next->size);
     printf("all done\n");
 }
+*/
