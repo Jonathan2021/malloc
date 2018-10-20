@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include <assert.h>
+#include <unistd.h>
 
 #define MEM 1000000000000
 /*
@@ -112,18 +112,19 @@ static struct chunk* get_base(void)
   return base;
 }
 
+void my_assert(int pass, int code) {
+  if (!pass)
+    _exit(code);
+}
+
 void sanity_check(void) {
   struct chunk *this, *prev = 0;
 
   for (this = base; this; prev = this, this = this->next) {
-    assert(this>=base);
-    assert(this->prev == prev);
-    if (prev) {
-      if(((char*)prev) + (prev->size) + sizeof(struct chunk) != (char *)this)
-       {
-           printf("previous = %p + prev->size = %lu + sizeof(chunk) = %lu == this = %p\nFAILED\n", (void *)prev, prev->size, sizeof(struct chunk), (void *)this);
-           assert(0);
-        }
+    my_assert(this->prev == prev, 1);
+    if (this->next) {
+      my_assert((char *)this->next == ((char*)this) + (this->size) + sizeof(struct chunk), 2);
+      my_assert(this->next > this, 3);
     }
   }
 }
@@ -206,7 +207,7 @@ void *malloc(size_t __attribute__((unused)) size)
         //        c = c->next;
 	//}
         add_alloc(c, s);
-        assert(c >= base);
+        //assert(c >= base);
         sanity_check();
         return c + 1;
 }
@@ -228,14 +229,14 @@ void free(void __attribute__((unused)) *p)
 {
         if(p==0)
             return;
-        sanity_check();
 	struct chunk *c = get_chunk(p);
-        assert(c >= base);
+        //assert(c >= base);
 	if (c)
 	{
 		c->free = 1;
                 //printf("\nfree succeeded\n\n");
 	}
+        sanity_check();
 }
 
 __attribute__((visibility("default")))
