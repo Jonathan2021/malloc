@@ -245,15 +245,16 @@ void *realloc(void __attribute__((unused)) *p,
 {
         if(p == NULL)
             return malloc(size);
-        if(size == 0) {
+        if(size == 0)
+        {
             free(p);
             return NULL;
         }
         size_t s = word_align(size);
         //printf("size should be %lu (add_alloc)\n", s);
 	struct chunk *c = get_chunk(p);
-        struct chunk *tmp = c->next;
-        struct chunk *prev = c;
+        //struct chunk *tmp = c->next;
+        //struct chunk *prev = c;
         if(!c)
             return NULL;
 	if (s <= c->size)
@@ -262,7 +263,7 @@ void *realloc(void __attribute__((unused)) *p,
                 add_alloc(c, s);
             sanity_check();
             return p;
-        }
+        }/*
         size_t opti = c->size;
         while(tmp && tmp->free && opti < s)
         {
@@ -277,7 +278,9 @@ void *realloc(void __attribute__((unused)) *p,
                 add_alloc(c, s);
                 if(tmp)
                     prev = tmp;
-                c->next->size = prev->size - (s + sizeof(struct chunk));
+                c->next->size = prev->size;
+                c->next->size=1;
+                //c->next->size = prev->size - (opti - (s + sizeof(struct chunk)));
                 c = c->next;
             }
             else
@@ -288,6 +291,7 @@ void *realloc(void __attribute__((unused)) *p,
             sanity_check();
             return p;
         }
+        */
         void *new_p = malloc(size);		
 	wordcpy(new_p, p, c->size);
 	free(p);
