@@ -245,8 +245,10 @@ void *realloc(void __attribute__((unused)) *p,
 {
         if(p == NULL)
             return malloc(size);
-        if(size == 0)
+        if(size == 0) {
             free(p);
+            return NULL;
+        }
         size_t s = word_align(size);
         //printf("size should be %lu (add_alloc)\n", s);
 	struct chunk *c = get_chunk(p);
@@ -256,10 +258,7 @@ void *realloc(void __attribute__((unused)) *p,
 	if (s <= c->size)
         {
             if(s + sizeof(struct chunk) < c->size)
-	    {
                 add_alloc(c, s);
-                tmp->prev = c->next;
-            }
             sanity_check();
             return p;
         }
