@@ -1,0 +1,15 @@
+#!/bin/sh
+
+export FIND=../myfind
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+END='\e[0m'
+
+for TEST in tests/*.sh ; do
+  if ./$TEST './libmalloc.so'; then
+    echo "$GREEN$TEST passed$END"
+  else
+    echo "$RED$TEST failed$END"
+  fi
+done

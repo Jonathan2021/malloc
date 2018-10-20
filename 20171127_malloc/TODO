@@ -8,9 +8,11 @@ bonus
 
 test ls done
 test cat done
-test tree done
+test tree done partially (tree / ends up in loop)
 test ip done
-test find done
+test find done partially (find / end ups in loop)
 test echo done
 all test done
+firefox done
+etc. done
 
