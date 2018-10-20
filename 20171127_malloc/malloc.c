@@ -50,6 +50,7 @@ struct chunk
   char          free;
 };
 
+
 static void *allocate(void)
 {
     return mmap(NULL, MEM, PROT_READ | PROT_WRITE |\
@@ -111,6 +112,21 @@ static struct chunk* get_base(void)
   return base;
 }
 
+void sanity_check(void) {
+  struct chunk *this, *prev = 0;
+
+  for (this = base; this; prev = this, this = this->next) {
+    assert(this>=base);
+    assert(this->prev == prev);
+    if (prev) {
+      if(((char*)prev) + (prev->size) + sizeof(struct chunk) != (char *)this)
+       {
+           printf("previous = %p + prev->size = %lu + sizeof(chunk) = %lu == this = %p\nFAILED\n", (void *)prev, prev->size, sizeof(struct chunk), (void *)this);
+           assert(0);
+        }
+    }
+  }
+}
 /*
  * extend_heap(last, size) extends the heap with a new chunk containing a data block of size bytes.
  * Return 1 in case of success, and return 0 if sbrk(2) fails.
@@ -144,7 +160,7 @@ static struct chunk* find_chunk(size_t size)
 	{
 		if (heap_ptr->free)
 		{
-			if (heap_ptr->size >= size)
+			if (heap_ptr->size >= size + sizeof(struct chunk))
 				return heap_ptr;
 		}
 		heap_ptr = heap_ptr->next;
@@ -173,8 +189,10 @@ static struct chunk* get_chunk(void *p)
 }
 
 __attribute__((visibility("default")))
-void *my_malloc(size_t __attribute__((unused)) size)
+void *malloc(size_t __attribute__((unused)) size)
 {
+        if(size == 0)
+            return NULL;
 	struct chunk *c;
 	size_t s;
 	s = word_align(size);
@@ -189,15 +207,16 @@ void *my_malloc(size_t __attribute__((unused)) size)
 	//}
         add_alloc(c, s);
         assert(c >= base);
+        sanity_check();
         return c + 1;
 }
 
 __attribute__((visibility("default")))
-void *my_calloc(size_t __attribute__((unused)) nb,
+void *calloc(size_t __attribute__((unused)) nb,
              size_t __attribute__((unused)) size)
 {
 	void *p;
-	p = my_malloc(nb * size);
+	p = malloc(nb * size);
 	if (!p)
 		return NULL;
 	zerofill(p, word_align(size*nb));	
@@ -205,8 +224,11 @@ void *my_calloc(size_t __attribute__((unused)) nb,
 }
 
 __attribute__((visibility("default")))
-void my_free(void __attribute__((unused)) *p)
+void free(void __attribute__((unused)) *p)
 {
+        if(p==0)
+            return;
+        sanity_check();
 	struct chunk *c = get_chunk(p);
         assert(c >= base);
 	if (c)
@@ -217,9 +239,13 @@ void my_free(void __attribute__((unused)) *p)
 }
 
 __attribute__((visibility("default")))
-void *my_realloc(void __attribute__((unused)) *p,
+void *realloc(void __attribute__((unused)) *p,
              size_t __attribute__((unused)) size)
 {
+        if(p == NULL)
+            return malloc(size);
+        if(size == 0)
+            free(p);
         size_t s = word_align(size);
         //printf("size should be %lu (add_alloc)\n", s);
 	struct chunk *c = get_chunk(p);
@@ -233,6 +259,7 @@ void *my_realloc(void __attribute__((unused)) *p,
                 add_alloc(c, s);
                 tmp->prev = c->next;
             }
+            sanity_check();
             return p;
         }
         size_t opti = c->size;
@@ -241,7 +268,7 @@ void *my_realloc(void __attribute__((unused)) *p,
             opti += sizeof(struct chunk) + tmp->size;
             tmp = tmp->next;
         }
-        if(opti >= s)
+        if(tmp && opti >= s)
         {
             if(opti > s + sizeof(struct chunk))
             {
@@ -253,29 +280,18 @@ void *my_realloc(void __attribute__((unused)) *p,
                 c->size = opti;
             c->next = tmp;
             tmp->prev = c;
+            sanity_check();
             return p;
         }
-        void *new_p = my_malloc(size);		
+        void *new_p = malloc(size);		
 	wordcpy(new_p, p, c->size);
-	my_free(p);
+	free(p);
+        sanity_check();
 	return new_p;
 }
 
-void sanity_check(void) {
-  struct chunk *this, *prev = 0;
 
-  for (this = base; this; prev = this, this = this->next) {
-    assert(this->prev == prev);
-    if (prev) {
-      if(((char*)prev) + (prev->size) + sizeof(struct chunk) != (char *)this)
-       {
-           printf("previous = %p + prev->size = %lu + sizeof(chunk) = %lu == this = %p\nFAILED\n", (void *)prev, prev->size, sizeof(struct chunk), (void *)this);
-           assert(0);
-        }
-    }
-  }
-}
-
+/*
 int main(void)
 {
     printf("sizeof struct chunk %ld\n", sizeof(struct chunk));
@@ -313,3 +329,4 @@ int main(void)
     printf("size after  str %lu\n", c->next->size);
     printf("all done\n");
 }
+*/
