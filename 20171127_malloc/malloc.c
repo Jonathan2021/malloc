@@ -250,6 +250,7 @@ void *realloc(void __attribute__((unused)) *p,
         //printf("size should be %lu (add_alloc)\n", s);
 	struct chunk *c = get_chunk(p);
         struct chunk *tmp = c->next;
+        struct chunk *prev = c;
         if(!c)
             return NULL;
 	if (s <= c->size)
@@ -265,21 +266,25 @@ void *realloc(void __attribute__((unused)) *p,
         size_t opti = c->size;
         while(tmp && tmp->free && opti < s)
         {
+            prev = tmp;
             opti += sizeof(struct chunk) + tmp->size;
             tmp = tmp->next;
         }
-        if(tmp && opti >= s)
+        if(opti >= s)
         {
             if(opti > s + sizeof(struct chunk))
             {
                 add_alloc(c, s);
-                c->next->size = (char *)tmp - (char *)(c->next + 1);
+                if(tmp)
+                    prev = tmp;
+                c->next->size = prev->size - (s + sizeof(struct chunk));
                 c = c->next;
             }
             else
                 c->size = opti;
             c->next = tmp;
-            tmp->prev = c;
+            if(tmp)
+                tmp->prev = c;
             sanity_check();
             return p;
         }
