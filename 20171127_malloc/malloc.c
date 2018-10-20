@@ -170,7 +170,7 @@ static struct chunk* get_chunk(void *p)
 }
 
 __attribute__((visibility("default")))
-void *malloc(size_t __attribute__((unused)) size)
+void *my_malloc(size_t __attribute__((unused)) size)
 {
 	struct chunk *c;
 	size_t s;
@@ -190,11 +190,11 @@ void *malloc(size_t __attribute__((unused)) size)
 }
 
 __attribute__((visibility("default")))
-void *calloc(size_t __attribute__((unused)) nb,
+void *my_calloc(size_t __attribute__((unused)) nb,
              size_t __attribute__((unused)) size)
 {
 	void *p;
-	p = malloc(nb * size);
+	p = my_malloc(nb * size);
 	if (!p)
 		return NULL;
 	zerofill(p, word_align(size*nb));	
@@ -202,7 +202,7 @@ void *calloc(size_t __attribute__((unused)) nb,
 }
 
 __attribute__((visibility("default")))
-void free(void __attribute__((unused)) *p)
+void my_free(void __attribute__((unused)) *p)
 {
 	struct chunk *c = get_chunk(p);
         assert(c >= base);
@@ -214,7 +214,7 @@ void free(void __attribute__((unused)) *p)
 }
 
 __attribute__((visibility("default")))
-void *realloc(void __attribute__((unused)) *p,
+void *my_realloc(void __attribute__((unused)) *p,
              size_t __attribute__((unused)) size)
 {
         size_t s = word_align(size);
@@ -250,16 +250,28 @@ void *realloc(void __attribute__((unused)) *p,
             tmp->prev = c;
             return p;
         }
-        void *new_p = malloc(size);		
+        void *new_p = my_malloc(size);		
 	wordcpy(new_p, p, c->size);
-	free(p);
+	my_free(p);
 	return new_p;
 }
-/*
+
+void sanity_check(void) {
+  struct chunk *this, *prev = 0;
+
+  for (this = base; this; prev = this, this = this->next) {
+    assert(this->prev == prev);
+    if (prev) {
+      assert(((char*)prev) + (prev->size) + sizeof(struct chunk) == (char *)this);
+    }
+  }
+}
+
 int main(void)
 {
     printf("sizeof struct chunk %ld\n", sizeof(struct chunk));
     int *int_p = my_malloc(5000 * sizeof(int));
+    sanity_check();
     struct chunk *c = get_chunk(int_p);
     int_p[3] = 224;
     printf("free is %d\n", c->free);
@@ -268,6 +280,7 @@ int main(void)
     printf("next->size is %lu\n", c->next->size);
     printf("next->free is %d\n", c->next->free);
     char *str = my_malloc(10);
+    sanity_check();
     memcpy(str, "123456789", 10);
     printf("str is %s\n", str);
     printf("c->next->size: %lu\n", c->next->size);
@@ -275,12 +288,15 @@ int main(void)
     printf("adress p_int before realloc %p\n", (void *)int_p);
     printf("size is %lu\n", c->size);
     int_p = my_realloc(int_p, 150 * sizeof(int));
+    sanity_check();
     printf("adress p_int after 150 realloc %p\n", (void *)int_p);
     printf("size is %lu\n", c->size);
     int_p = my_realloc(int_p, 500 * sizeof(int));
+    sanity_check();
     printf("adress p_int after 500 realloc %p\n", (void *)int_p);
     printf("size is %lu\n", c->size);
     int_p = my_realloc(int_p, 8000 * sizeof(int));
+    sanity_check();
     printf("adress p_int after 8000 realloc %p\n", (void *)int_p);
     printf("size is %lu\n", c->size);
     printf("c->free %d\n", c->free);
@@ -288,4 +304,3 @@ int main(void)
     printf("size after str %lu\n", c->next->size);
     printf("all done\n");
 }
-*/
