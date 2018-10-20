@@ -1,3 +1,0 @@
-make all to build libmalloc.so library
-make check to run tests
-LD_PRELOAD=./libmalloc.so CMD
