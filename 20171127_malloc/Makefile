@@ -1,5 +1,5 @@
-CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99 -D_GNU_SOURCE -fPIC -fvisibility=hidden -g
-LDFLAGS = -shared
+CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99 -D_GNU_SOURCE -fPIC -fvisibility=hidden -g -fno-builtin
+LDFLAGS = -shared -fno-builtin
 TARGET_LIB = libmalloc.so
 OBJS = malloc.o
 BIN = test

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 #define MEM 1000000000000
 /*
@@ -89,11 +90,10 @@ static void wordcpy(void *dst, void *src, size_t len)
 }
 
 
+static struct chunk *base = NULL;
 
 static struct chunk* get_base(void) 
 {
-  static struct chunk *base = NULL;
-
   if (base == NULL) 
   {
 	void *new_mem = allocate();
@@ -185,6 +185,7 @@ void *malloc(size_t __attribute__((unused)) size)
         //        c = c->next;
 	//}
         add_alloc(c, s);
+        assert(c >= base);
         return c + 1;
 }
 
@@ -204,6 +205,7 @@ __attribute__((visibility("default")))
 void free(void __attribute__((unused)) *p)
 {
 	struct chunk *c = get_chunk(p);
+        assert(c >= base);
 	if (c)
 	{
 		c->free = 1;
@@ -216,11 +218,11 @@ void *realloc(void __attribute__((unused)) *p,
              size_t __attribute__((unused)) size)
 {
         size_t s = word_align(size);
-        printf("size should be %lu (add_alloc)\n", s);
+        //printf("size should be %lu (add_alloc)\n", s);
 	struct chunk *c = get_chunk(p);
         if(!c)
             return NULL;
-	if (size <= c->size)
+	if (s <= c->size)
         {
             if(s + sizeof(struct chunk) < c->size)
 	    {
@@ -230,14 +232,22 @@ void *realloc(void __attribute__((unused)) *p,
         }
         struct chunk *tmp = c->next;
         size_t opti = c->size;
-        while(tmp && tmp->free && opti < (s + sizeof(struct chunk)))
+        while(tmp && tmp->free && opti < s)
         {
             opti += sizeof(struct chunk) + tmp->size;
             tmp = tmp->next;
         }
-        if(opti >= s + sizeof(struct chunk))
+        if(opti >= s)
         {
-            add_alloc(c, s);
+            if(opti > s + sizeof(struct chunk))
+            {
+                add_alloc(c, s);
+                c = c->next;
+            }
+            else
+                c->size = opti;
+            c->next = tmp;
+            tmp->prev = c;
             return p;
         }
         void *new_p = malloc(size);		
