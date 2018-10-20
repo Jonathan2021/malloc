@@ -67,9 +67,12 @@ static void add_alloc(struct chunk *c, size_t size)
     struct chunk *new = (struct chunk *)((char *)(c + 1) + s);
     c->free = 0;
     new->next = c->next;
+    if(c->next)
+        c->next->prev = new;
     c->next = new;
     new->prev = c;
     new->free = 1;
+    //assert(c->size >= s + sizeof(struct chunk));
     new->size = c->size - (sizeof(struct chunk) + s);
     c->size = s;
 }
@@ -220,6 +223,7 @@ void *my_realloc(void __attribute__((unused)) *p,
         size_t s = word_align(size);
         //printf("size should be %lu (add_alloc)\n", s);
 	struct chunk *c = get_chunk(p);
+        struct chunk *tmp = c->next;
         if(!c)
             return NULL;
 	if (s <= c->size)
@@ -227,10 +231,10 @@ void *my_realloc(void __attribute__((unused)) *p,
             if(s + sizeof(struct chunk) < c->size)
 	    {
                 add_alloc(c, s);
+                tmp->prev = c->next;
             }
             return p;
         }
-        struct chunk *tmp = c->next;
         size_t opti = c->size;
         while(tmp && tmp->free && opti < s)
         {
@@ -242,6 +246,7 @@ void *my_realloc(void __attribute__((unused)) *p,
             if(opti > s + sizeof(struct chunk))
             {
                 add_alloc(c, s);
+                c->next->size = (char *)tmp - (char *)(c->next + 1);
                 c = c->next;
             }
             else
@@ -262,7 +267,11 @@ void sanity_check(void) {
   for (this = base; this; prev = this, this = this->next) {
     assert(this->prev == prev);
     if (prev) {
-      assert(((char*)prev) + (prev->size) + sizeof(struct chunk) == (char *)this);
+      if(((char*)prev) + (prev->size) + sizeof(struct chunk) != (char *)this)
+       {
+           printf("previous = %p + prev->size = %lu + sizeof(chunk) = %lu == this = %p\nFAILED\n", (void *)prev, prev->size, sizeof(struct chunk), (void *)this);
+           assert(0);
+        }
     }
   }
 }
@@ -301,6 +310,6 @@ int main(void)
     printf("size is %lu\n", c->size);
     printf("c->free %d\n", c->free);
     c = get_chunk(str);
-    printf("size after str %lu\n", c->next->size);
+    printf("size after  str %lu\n", c->next->size);
     printf("all done\n");
 }

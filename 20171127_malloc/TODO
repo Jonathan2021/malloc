@@ -8,8 +8,9 @@ bonus
 
 test ls done
 test cat done
-test tree
-test ip
-test find
+test tree done
+test ip done
+test find done
 test echo done
+all test done
 

@@ -8,7 +8,7 @@ CC ?= gcc
 
 .PHONY: all ${TARGET_LIB} clean
 
-$(BIN): test_malloc.c
+$(BIN): malloc.c
 	$(CC) $(CFLAGS) -o $(@) $(<) 
 
 ${TARGET_LIB}: ${OBJS}
