@@ -170,7 +170,7 @@ static struct chunk* get_chunk(void *p)
 }
 
 __attribute__((visibility("default")))
-void *malloc(size_t __attribute__((unused)) size)
+void *my_malloc(size_t __attribute__((unused)) size)
 {
 	struct chunk *c;
 	size_t s;
@@ -189,11 +189,11 @@ void *malloc(size_t __attribute__((unused)) size)
 }
 
 __attribute__((visibility("default")))
-void *calloc(size_t __attribute__((unused)) nb,
+void *my_calloc(size_t __attribute__((unused)) nb,
              size_t __attribute__((unused)) size)
 {
 	void *p;
-	p = malloc(nb * size);
+	p = my_malloc(nb * size);
 	if (!p)
 		return NULL;
 	zerofill(p, word_align(size*nb));	
@@ -201,18 +201,18 @@ void *calloc(size_t __attribute__((unused)) nb,
 }
 
 __attribute__((visibility("default")))
-void free(void __attribute__((unused)) *p)
+void my_free(void __attribute__((unused)) *p)
 {
 	struct chunk *c = get_chunk(p);
 	if (c)
 	{
 		c->free = 1;
-                //printf("\nfree succeeded\n\n");
+                printf("\nfree succeeded\n\n");
 	}
 }
 
 __attribute__((visibility("default")))
-void *realloc(void __attribute__((unused)) *p,
+void *my_realloc(void __attribute__((unused)) *p,
              size_t __attribute__((unused)) size)
 {
         size_t s = word_align(size);
@@ -235,47 +235,57 @@ void *realloc(void __attribute__((unused)) *p,
             opti += sizeof(struct chunk) + tmp->size;
             tmp = tmp->next;
         }
-        if(opti >= s + sizeof(struct chunk))
+        if(opti >= (s + sizeof(struct chunk)))
         {
             add_alloc(c, s);
             return p;
         }
-        void *new_p = malloc(size);		
+        void *new_p = my_malloc(size);		
 	wordcpy(new_p, p, c->size);
-	free(p);
+	my_free(p);
 	return new_p;
 }
-/*
+
 int main(void)
 {
     printf("sizeof struct chunk %ld\n", sizeof(struct chunk));
     int *int_p = my_malloc(5000 * sizeof(int));
     struct chunk *c = get_chunk(int_p);
     int_p[3] = 224;
-    printf("free is %d\n", c->free);
-    printf("size is %lu\n", c->size);
-    printf("int_p[3] is %d\n", int_p[3]);
-    printf("next->size is %lu\n", c->next->size);
-    printf("next->free is %d\n", c->next->free);
+    //printf("free is %d\n", c->free);
+    //printf("size is %lu\n", c->size);
+    //printf("int_p[3] is %d\n", int_p[3]);
+    //printf("next->size is %lu\n", c->next->size);
+    //printf("next->free is %d\n", c->next->free);
     char *str = my_malloc(10);
     memcpy(str, "123456789", 10);
-    printf("str is %s\n", str);
-    printf("c->next->size: %lu\n", c->next->size);
-    printf("c->next->next->size: %lu\n", c->next->next->size);
-    printf("adress p_int before realloc %p\n", (void *)int_p);
+   // printf("str is %s\n", str);
+    //printf("c->next->size: %lu\n", c->next->size);
+    //printf("c->next->next->size: %lu\n", c->next->next->size);
+    //printf("adress p_int before realloc %p\n", (void *)int_p);
     printf("size is %lu\n", c->size);
     int_p = my_realloc(int_p, 150 * sizeof(int));
     printf("adress p_int after 150 realloc %p\n", (void *)int_p);
+    c = get_chunk(int_p);
     printf("size is %lu\n", c->size);
+    printf("next size is %lu\n", c->next->size);
+    int *calloc_p = my_calloc(10, sizeof(int));
+    for(int i = 0; i<10; ++i)
+    {
+        printf("%d\n", calloc_p[i]);
+    }
     int_p = my_realloc(int_p, 500 * sizeof(int));
     printf("adress p_int after 500 realloc %p\n", (void *)int_p);
+    c = get_chunk(int_p);
     printf("size is %lu\n", c->size);
+    printf("next size is %lu\n", c->next->size);
     int_p = my_realloc(int_p, 8000 * sizeof(int));
     printf("adress p_int after 8000 realloc %p\n", (void *)int_p);
+    c = get_chunk(int_p);
     printf("size is %lu\n", c->size);
+    printf("next size is %lu\n", c->next->size);
     printf("c->free %d\n", c->free);
     c = get_chunk(str);
     printf("size after str %lu\n", c->next->size);
     printf("all done\n");
 }
-*/
