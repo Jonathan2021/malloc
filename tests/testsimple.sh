@@ -12,13 +12,13 @@ while read args ; do
     T1="$(LD_PRELOAD=$1 $args 2>&1)"
     T2=$($args 2>&1)
     if [ "$T1" = "$T2" ]; then
-        printf "\n$GREEN------------------------------------$END\n"
+        printf "\n----------------------------------------------\n"
         printf "\n$GREEN$args$END\n"
-        printf "\n$GREEN------------------------------------$END\n"
+        printf "\n----------------------------------------------\n"
     else
-        printf "\n$RED------------------------------------$END\n"
+        printf "\n----------------------------------------------\n"
         printf "$RED$args$END\n"
-        printf "\n$RED------------------------------------$END\n"
+        printf "\n----------------------------------------------\n"
         #echo "got\n$T1"
         #echo "expected\n$T2"
         STATUS=1
