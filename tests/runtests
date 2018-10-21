@@ -8,8 +8,8 @@ END='\e[0m'
 
 for TEST in tests/*.sh ; do
   if ./$TEST './libmalloc.so'; then
-    echo "$GREEN$TEST passed$END"
+    printf "\n$GREEN$TEST passed$END\n"
   else
-    echo "$RED$TEST failed$END"
+    printf "\n$RED$TEST failed$END\n"
   fi
 done
