@@ -90,7 +90,6 @@ tree ../../..
 clang src/malloc.c
 od libmalloc.so
 factor 34
-find /
 EOF
 
 exit $STATUS
