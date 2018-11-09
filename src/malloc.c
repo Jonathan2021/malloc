@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#define MEM 1000000000000
+#define MEM 0x1000000000000
 #define ALIGN 16
 
 struct chunk
@@ -66,7 +66,6 @@ static struct chunk* get_base(void)
 	if (new_mem == (void*)(-1))
 		return NULL;
 	base = new_mem;
-#include <stdio.h>
 	base->size =  MEM - sizeof(struct chunk);
 	base->free = 1;
 	base->next = NULL;
@@ -127,10 +126,10 @@ static struct chunk* get_chunk(void *p)
 		return NULL;
 	if ((intptr_t)(p) & (ALIGN - 1))
 		return NULL;
-	if (p < (void*)(get_base() + 1))
+	if (p < sizeof(struct chunk))
 		return NULL;
 	chunk = (struct chunk *)(p) - 1;
-	if (p != chunk + 1)
+	if (chunk < get_base())
 		return NULL;
 	return chunk;
 }
