@@ -8,6 +8,8 @@
 #define MEM 0x100000000000
 #define ALIGN 16
 
+#undef SANITY_CHECK
+
 struct chunk
 {
   struct chunk *next;
@@ -77,6 +79,7 @@ static struct chunk* get_base(void)
 
 //Sanity checks could be usefull later so I commented them out
 
+#ifdef SANITY_CHECK
 void my_assert(int pass, int code) {
   if (!pass)
     _exit(code);
@@ -96,6 +99,7 @@ void sanity_check(void) {
     }
   }
 }
+#endif
 
 //Find the first free chunk big enough
 static struct chunk* find_chunk(size_t size)
@@ -147,7 +151,9 @@ void *malloc(size_t __attribute__((unused)) size)
 	if (!c)
 		return NULL;
         add_alloc(c, s);
+#ifdef SANITY_CHECK
         sanity_check();
+#endif
         return c + 1;
 }
 
@@ -161,7 +167,9 @@ void *calloc(size_t __attribute__((unused)) nb,
 	if (!p)
 		return NULL;
 	zerofill(p, nb * size);	
+#ifdef SANITY_CHECK
         sanity_check();
+#endif
 	return p;
 }
 
@@ -190,7 +198,9 @@ void free(void __attribute__((unused)) *p)
                 if (c->next)
                         c->next->prev = c->prev;
             }
+#ifdef SANITY_CHECK
         sanity_check();
+#endif
 }
 
 //realloc void *
@@ -213,7 +223,9 @@ void *realloc(void __attribute__((unused)) *p,
         {
             if(s + sizeof(struct chunk) < c->size) {
                 add_alloc(c, s);
+#ifdef SANITY_CHECK
                 sanity_check();
+#endif
             }
             return p;
         } //had an opti but didn't work out well so just malloc it
