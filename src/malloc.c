@@ -5,6 +5,7 @@
 #include <string.h>
 
 #define MEM 1000000000000
+#define ALIGN 16
 
 struct chunk
 {
@@ -23,7 +24,7 @@ static void *allocate(void)
 
 static size_t word_align(size_t n)
 {
-	return ((n - 1) | (16 - 1)) + 1;
+	return ((n - 1) | (ALIGN - 1)) + 1;
 }
 
 static void add_alloc(struct chunk *c, size_t size)
@@ -124,7 +125,7 @@ static struct chunk* get_chunk(void *p)
 
 	if (p == NULL)
 		return NULL;
-	if ((intptr_t)(p) & (sizeof(void*) - 1))
+	if ((intptr_t)(p) & (ALIGN - 1))
 		return NULL;
 	if (p < (void*)(get_base() + 1))
 		return NULL;
@@ -172,7 +173,17 @@ void free(void __attribute__((unused)) *p)
 	struct chunk *c = get_chunk(p);
 	if (c)
 	{
-		c->free = 1;
+	    c->free = 1;
+            if(c->next && c->next->free)
+            {
+                c->size += c->next->size + sizeof(struct chunk);
+                c->next = c->next->next;
+            }
+            if(c->prev && c->prev->free)
+            {
+                c->prev->size += c->size + sizeof(struct chunk);
+                c->prev->next = c->next;
+            }
 	}
 }
 
