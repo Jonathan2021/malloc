@@ -3,8 +3,9 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 
-#define MEM 0x1000000000000
+#define MEM 0x100000000000
 #define ALIGN 16
 
 struct chunk
@@ -76,26 +77,25 @@ static struct chunk* get_base(void)
 
 //Sanity checks could be usefull later so I commented them out
 
-/*
 void my_assert(int pass, int code) {
   if (!pass)
     _exit(code);
 }
-*/
 
-/*void sanity_check(void) {
+void sanity_check(void) {
   struct chunk *this, *prev = 0;
 
   for (this = base; this; prev = this, this = this->next) {
-    my_assert(this->prev == prev, 1);
+    my_assert(!((intptr_t)this & (ALIGN - 1)), 1);
+    my_assert(!(this->size & (ALIGN - 1)), 2);
+    my_assert(this->prev == prev, 3);
     if (this->next) {
       my_assert((char *)this->next == ((char*)this) + \
-      (this->size) + sizeof(struct chunk), 2);
-      my_assert(this->next > this, 3);
+      (this->size) + sizeof(struct chunk), 4);
+      my_assert(this->next > this, 5);
     }
   }
 }
-*/
 
 //Find the first free chunk big enough
 static struct chunk* find_chunk(size_t size)
@@ -126,7 +126,7 @@ static struct chunk* get_chunk(void *p)
 		return NULL;
 	if ((intptr_t)(p) & (ALIGN - 1))
 		return NULL;
-	if (p < sizeof(struct chunk))
+	if ((uintptr_t)p < sizeof(struct chunk))
 		return NULL;
 	chunk = (struct chunk *)(p) - 1;
 	if (chunk < get_base())
@@ -147,6 +147,7 @@ void *malloc(size_t __attribute__((unused)) size)
 	if (!c)
 		return NULL;
         add_alloc(c, s);
+        sanity_check();
         return c + 1;
 }
 
@@ -159,7 +160,8 @@ void *calloc(size_t __attribute__((unused)) nb,
 	p = malloc(nb * size);
 	if (!p)
 		return NULL;
-	zerofill(p, word_align(size * nb));	
+	zerofill(p, nb * size);	
+        sanity_check();
 	return p;
 }
 
@@ -170,20 +172,25 @@ void free(void __attribute__((unused)) *p)
         if(p==0)
             return;
 	struct chunk *c = get_chunk(p);
-	if (c)
-	{
+	if (!c)
+                return;
+
 	    c->free = 1;
             if(c->next && c->next->free)
             {
                 c->size += c->next->size + sizeof(struct chunk);
                 c->next = c->next->next;
+                if (c->next)
+                        c->next->prev = c;
             }
             if(c->prev && c->prev->free)
             {
                 c->prev->size += c->size + sizeof(struct chunk);
                 c->prev->next = c->next;
+                if (c->next)
+                        c->next->prev = c->prev;
             }
-	}
+        sanity_check();
 }
 
 //realloc void *
@@ -204,8 +211,10 @@ void *realloc(void __attribute__((unused)) *p,
             return NULL;
 	if (s <= c->size) //fits in same box
         {
-            if(s + sizeof(struct chunk) < c->size)
+            if(s + sizeof(struct chunk) < c->size) {
                 add_alloc(c, s);
+                sanity_check();
+            }
             return p;
         } //had an opti but didn't work out well so just malloc it
         void *new_p = malloc(size);		
